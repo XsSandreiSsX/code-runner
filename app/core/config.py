@@ -9,7 +9,11 @@ class Settings(BaseSettings):
     APP_VERSION: float = 1.0
     DEBUG: bool = True
 
-    ALLOWED_ISSUERS: list = []
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_HOST: str
+    POSTGRES_PORT: int
+    POSTGRES_DB: str
 
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / ".env"),
