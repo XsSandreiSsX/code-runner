@@ -105,3 +105,36 @@ Just look at how clean these endpoints are. I moved the business logic out of th
     </ul>
   </li>
 </ul>
+
+## Patch 1.3:
+### Changelog
+- While coding, I decided to try Poetry — such a cool thing for developers.  
+  You can run everything with a virtual environment using a single command.  
+  No more raw pip management!
+
+- Finally added a one-to-many relationship between `Service` and `TestSuite`.
+
+- Finally, I implemented JWT authorization.  
+  JWT is actually a really cool thing — connected authentication through JWT Bearer in headers, everything as it should be.
+
+- Added a couple of custom exceptions:
+  - `UnauthorizedError`
+  - `InvalidTokenError`
+
+- Now services have access only to their own created `TestSuite`.
+
+### Future Features
+- Now it is time to create the `Submission` model.
+
+- The model will be used for submitting user code.
+
+- Again, why should the code-runner know when the submission was sent or who sent it?  
+  The code-runner should only know the user code and which `TestSuite` it has to run.
+
+- Additionally, the `Submission` model will store:
+  - execution time
+  - memory usage
+  - status: `in_queue`, `running`, `completed`
+  - verdict
+
+- Also need to configure an endpoint that will submit user code.

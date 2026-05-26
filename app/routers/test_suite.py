@@ -1,9 +1,10 @@
-from app.core.deps import get_session
+from app.core.deps import get_session, get_current_issuer
 
 from app.schemas.test_suite import TestSuiteCreateSchema, TestSuiteUpdateSchema, TestSuiteCreatedDataSchema, TestSuiteGetSchema
 from app.schemas.client_response import ClientResponse, SwaggerError
 
 from app.services.test_suite import TestSuiteService
+from app.models import Service
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,8 +18,9 @@ router = APIRouter()
              response_model=ClientResponse[TestSuiteCreatedDataSchema],
              status_code=status.HTTP_201_CREATED,
              responses={201: {"description": "Successfully created new test suite"}},)
-async def create_testsuite(data: TestSuiteCreateSchema, session: AsyncSession = Depends(get_session)):
-    testsuite = await TestSuiteService.create_testsuite(session, data)
+async def create_testsuite(data: TestSuiteCreateSchema, session: AsyncSession = Depends(get_session),
+                           issuer: Service = Depends(get_current_issuer)):
+    testsuite = await TestSuiteService.create_testsuite(session, data, issuer)
 
     return ClientResponse[TestSuiteCreatedDataSchema].success(
         data=TestSuiteCreatedDataSchema(id=testsuite.id),
@@ -32,8 +34,9 @@ async def create_testsuite(data: TestSuiteCreateSchema, session: AsyncSession = 
             response_model=ClientResponse[TestSuiteGetSchema],
             responses={404: {"description": "Not found test suite",
                              "model": SwaggerError}})
-async def get_testsuite(testsuite_id: int, session: AsyncSession = Depends(get_session)):
-    testsuite = await TestSuiteService.get_testsuite(session, testsuite_id)
+async def get_testsuite(testsuite_id: int, session: AsyncSession = Depends(get_session),
+                        issuer: Service = Depends(get_current_issuer)):
+    testsuite = await TestSuiteService.get_testsuite(session, testsuite_id, issuer)
 
     return ClientResponse[TestSuiteGetSchema].success(
         data=TestSuiteGetSchema.model_validate(testsuite),
@@ -48,8 +51,9 @@ async def get_testsuite(testsuite_id: int, session: AsyncSession = Depends(get_s
                responses={200: {"description": "Successfully deleted test suite"},
                           404: {"description": "Not found test suite",
                                 "model": SwaggerError}},)
-async def delete_testsuite(testsuite_id: int, session: AsyncSession = Depends(get_session)):
-    await TestSuiteService.delete_testsuite(session, testsuite_id)
+async def delete_testsuite(testsuite_id: int, session: AsyncSession = Depends(get_session),
+                           issuer: Service = Depends(get_current_issuer)):
+    await TestSuiteService.delete_testsuite(session, testsuite_id, issuer)
     return ClientResponse[None].success(
         detail="Successfully deleted test suite",
     )
@@ -62,8 +66,9 @@ async def delete_testsuite(testsuite_id: int, session: AsyncSession = Depends(ge
               responses={200: {"description": "Successfully updated test suite"},
                          404: {"description": "Not found test suite",
                                "model": SwaggerError}},)
-async def update_testsuite(testsuite_id: int, data: TestSuiteUpdateSchema, session: AsyncSession = Depends(get_session)):
-    await TestSuiteService.update_testsuite(session, data, testsuite_id)
+async def update_testsuite(testsuite_id: int, data: TestSuiteUpdateSchema, session: AsyncSession = Depends(get_session),
+                           issuer: Service = Depends(get_current_issuer)):
+    await TestSuiteService.update_testsuite(session, data, testsuite_id, issuer)
 
     return ClientResponse[None].success(
         detail="Successfully updated test suite",

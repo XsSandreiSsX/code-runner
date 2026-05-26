@@ -1,9 +1,9 @@
 from app.core.database import Base
-
 from typing import List
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Text, ForeignKey
+
 
 
 class TestCase(Base):
@@ -28,3 +28,7 @@ class TestSuite(Base):
         lazy="selectin",
         cascade="all, delete-orphan",
     )
+
+    service_id: Mapped[int] = mapped_column(ForeignKey("service.id"))
+    service: Mapped["Service"] = relationship(back_populates="test_suites")
+

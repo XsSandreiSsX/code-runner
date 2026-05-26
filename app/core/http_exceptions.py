@@ -15,3 +15,11 @@ class ConflictError(HttpException):
 
 class NotFoundError(HttpException):
     status_code = status.HTTP_404_NOT_FOUND
+
+
+class UnauthorizedError(HttpException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+
+
+class InvalidTokenError(HttpException):
+    status_code = status.HTTP_401_UNAUTHORIZED
