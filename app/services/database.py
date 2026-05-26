@@ -2,12 +2,12 @@ from app.core.database import Base
 from app.core.app_exceptions import UnknownFieldError, NoFilterError
 from app.core.http_exceptions import ConflictError
 
-from app.models.service import Service
-
+from app.models import Service, TestSuite
 from typing import Generic, TypeVar, Type
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import inspect, delete, select
+
 
 T = TypeVar("T", bound=Base)
 
@@ -15,7 +15,6 @@ class BaseDAO(Generic[T]):
     model: Type[T]
     FORBIDDEN_FIELDS = {"id", "created_at", "updated_at"}
     ALLOWED_FIELDS: set[str] = set()
-    ALLOWED_RELATIONSHIPS: set[str] = set()
 
     @classmethod
     async def get_or_none(cls, session: AsyncSession, **filters) -> T | None:
@@ -93,7 +92,11 @@ class BaseDAO(Generic[T]):
         cols = {c.key for c in mapper.column_attrs}
         rels = set(mapper.relationships.keys())
 
-        cls.ALLOWED_FIELDS.update((cols | (rels & cls.ALLOWED_RELATIONSHIPS)) - cls.FORBIDDEN_FIELDS)
+        cls.ALLOWED_FIELDS.update((cols | rels) - cls.FORBIDDEN_FIELDS)
 
 class ServiceDAO(BaseDAO[Service]):
     model = Service
+
+
+class TestSuiteDAO(BaseDAO[TestSuite]):
+    model = TestSuite

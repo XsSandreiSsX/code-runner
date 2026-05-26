@@ -12,3 +12,6 @@ class HttpException(Exception):
 class ConflictError(HttpException):
     status_code = status.HTTP_409_CONFLICT
 
+
+class NotFoundError(HttpException):
+    status_code = status.HTTP_404_NOT_FOUND
