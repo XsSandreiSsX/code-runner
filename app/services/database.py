@@ -2,12 +2,11 @@ from app.core.database import Base
 from app.core.app_exceptions import UnknownFieldError, NoFilterError
 from app.core.http_exceptions import ConflictError
 
-from app.models import Service, TestSuite
+from app.models import Service, TestSuite, Submission
 from typing import Generic, TypeVar, Type
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import inspect, delete, select
-
 
 T = TypeVar("T", bound=Base)
 
@@ -100,3 +99,7 @@ class ServiceDAO(BaseDAO[Service]):
 
 class TestSuiteDAO(BaseDAO[TestSuite]):
     model = TestSuite
+
+
+class SubmissionDAO(BaseDAO[Submission]):
+    model = Submission

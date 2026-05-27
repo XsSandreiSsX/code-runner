@@ -138,3 +138,31 @@ Just look at how clean these endpoints are. I moved the business logic out of th
   - verdict
 
 - Also need to configure an endpoint that will submit user code.
+## Patch 1.4:
+
+### Changelog
+- Added a new `Submission` model with the most essential fields:
+  - which test suite will be used for testing
+  - which service submitted the solution
+  - submission status
+  - verdict
+  - failed test index if the verdict is `WRONG_ANSWER`
+  - execution time and memory usage
+
+- Added several new Pydantic schemas related to Submission, as well as corresponding endpoints:
+  - **POST** `/submission` — submit user code for testing, after submission the status is automatically set to IN_QUEUE
+  - **GET** `/submission/{submission_id}` — get the current submission status and verdict
+
+- Added a `JudgeService` class as a temporary placeholder to handle background processing using FastAPI background tasks.
+
+### Future Features
+The “easy” part is over — now it’s time for the most interesting stage: working with user code execution and seriously thinking about server protection.
+Honestly, this is the exact reason why I originally planned the code-runner project.
+
+**In the next patch:**
+- I plan to run user code inside containers and execute test cases.
+- After that, I will focus on protecting the system kernel from malicious code and research different sandboxing/security approaches.
+- I will also implement proper `Submission` status handling after code execution.
+
+**Future plans:**
+Later, I will integrate Celery for `Submission` queue management.

@@ -24,7 +24,6 @@ class TestSuiteService:
         obj = await TestSuiteDAO.get_or_none(session, id=testsuite_id, service_id=issuer.id)
         if not obj:
             raise NotFoundError(f"Test suite with id: {testsuite_id} was not found.")
-
         return obj
 
     @classmethod

@@ -40,4 +40,3 @@ class TestSuiteCreatedDataSchema(BaseModel):
 
 class TestSuiteGetSchema(TestSuiteCreatedDataSchema, TestSuiteUpdateSchema):
     model_config = ConfigDict(from_attributes=True)
-    pass

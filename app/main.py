@@ -5,7 +5,7 @@ from app.core.error_handlers import http_exception_handler
 
 import app.models
 
-from app.routers import test_suite
+from app.routers import test_suite, submission
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -21,9 +21,11 @@ app.add_exception_handler(HttpException, http_exception_handler)
 
 app.include_router(test_suite.router,
                    prefix="/testsuite",
-                   tags=["tests"])
+                   tags=["testsuite"])
 
-
+app.include_router(submission.router,
+                  prefix="/submission",
+                  tags=["submissions"])
 @app.get("/health")
 async def health():
     return {
