@@ -1,5 +1,5 @@
 from app.core.database import Base
-from app.models.enums import SubmissionStatus, SubmissionVerdict
+from shared.models.enums import SubmissionStatus, SubmissionVerdict
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Enum, ForeignKey
@@ -22,6 +22,7 @@ class Submission(Base):
     error_message: Mapped[str | None] = mapped_column(nullable=True)
     time_used: Mapped[int | None] = mapped_column(nullable=True)
     memory_used: Mapped[int | None] = mapped_column(nullable=True)
+    tests_passed: Mapped[int | None] = mapped_column(nullable=True)
 
     service_id: Mapped[int] = mapped_column(ForeignKey("service.id"))
     service: Mapped["Service"] = relationship(back_populates="submissions"

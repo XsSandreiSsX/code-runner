@@ -2,7 +2,7 @@ from app.core.database import async_session_maker
 from app.core.http_exceptions import UnauthorizedError, InvalidTokenError
 from app.models import Service
 
-from app.services.database import ServiceDAO
+from app.database import ServiceDAO
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer

@@ -1,7 +1,6 @@
 from app.core.http_exceptions import NotFoundError
-from app.models.submission import Submission
-from app.models.service import Service
-from app.services.database import SubmissionDAO, TestSuiteDAO
+from app.models import Service, Submission
+from app.database import SubmissionDAO, TestSuiteDAO
 from app.schemas.submission import SubmissionCreateSchema
 
 from sqlalchemy.ext.asyncio import AsyncSession

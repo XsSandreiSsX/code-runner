@@ -7,17 +7,14 @@ I also want to build workers that will run user submissions. This will be my fir
 
 I’m also very interested in implementing a system for testing user submissions and taking protection against malicious code seriously.
 
-<img src="https://assets.stickerswiki.app/s/a1955543499_by_kurumi_0bot/34ef8753.webp" width=128 height=128 alt="Am I tsundere? Definitely not...">
-
 ### Planned Features
-<ol>
-    <li>Add database support</li>
-    <li>Implement JWT authentication</li>
-    <li>Create routers for managing test case system</li>
-    <li>Add Celery workers for running user submissions</li>
-    <li>Implement submission queue processing</li>
-    <li>Add sandbox protection for malicious code</li>
-</ol>
+- Add database support
+- Implement JWT authentication
+- Create routers for managing test case system
+- Add Celery workers for running user submissions 
+- Implement submission queue processing 
+- Add sandbox protection for malicious code
+
 
 ## Patch 1.1:
 ### Changelog
@@ -33,15 +30,12 @@ At the moment, I implemented CLI access for convenient service creation/removal,
 
 I also added custom exceptions that should help prevent accidental bugs on my side, but they should not affect the client side in any way. To this end I want to create separate `ClientExceptions`.
 
-<img src="https://i.pinimg.com/1200x/d6/19/43/d619434bd9ca8da771f8c2666b53767b.jpg" width=128 height=128 alt="Я посмотрел финал The Boys">
-
 ### Future Features:
-<ol>
-    <li>I’m planning to implement JWT authorization logic.</li>
-    <li>Add several endpoints for creating, deleting, and maybe updating test suites.</li>
-    <li>I will also add separate client-side exceptions.</li>
-    <li>I’m planning to add corresponding database models for test suites, test cases, and related entities.</li>
-</ol>
+- I’m planning to implement JWT authorization logic. 
+- Add several endpoints for creating, deleting, and maybe updating test suites. 
+- I will also add separate client-side exceptions.
+- I’m planning to add corresponding database models for test suites, test cases, and related entities
+
 
 ## Patch 1.2: 
 The core idea of the code-runner is that it should not know the problem title, for example “Add a+b”.
@@ -93,18 +87,12 @@ Also added several client-side exceptions and an `error_handler`, which guarante
 Just look at how clean these endpoints are. I moved the business logic out of the endpoints into a separate class.
 
 ### Future Features
-<ul>
-  <li>Added a relationship between <code>TestSuite</code> and services, so each service only has access to its own test suites.</li>
+- Added a relationship between <code>TestSuite</code> and services, so each service only has access to its own test suites
+- Planning to finish JWT authorization and use it to protect all API methods
+- Added access control checks:
+  - <code>service_id</code> from JWT must match the owner of the <code>TestSuite</code>
+  - services cannot get, update, or delete чужие test suites
 
-  <li>Planning to finish JWT authorization and use it to protect all API methods.</li>
-
-  <li>Added access control checks:
-    <ul>
-      <li><code>service_id</code> from JWT must match the owner of the <code>TestSuite</code></li>
-      <li>services cannot get, update, or delete чужие test suites</li>
-    </ul>
-  </li>
-</ul>
 
 ## Patch 1.3:
 ### Changelog
@@ -166,3 +154,102 @@ Honestly, this is the exact reason why I originally planned the code-runner proj
 
 **Future plans:**
 Later, I will integrate Celery for `Submission` queue management.
+
+## Patch 1.5
+
+While working on the protection layer, I ran into a lot of problems.
+
+- One of the biggest issues was that `nsjail` itself runs inside an already restricted Docker container. Because of that, the Docker container had to be given quite a lot of permissions, but as a result, the protection inside `nsjail` became much stronger.
+- Then I faced another problem: the isolated environment is started from scratch for every test, and the startup itself takes some time. Because of that, calculating the real execution time of the user's solution was pretty tricky.
+So, physics knowledge came to the rescue. I decided to write `sleep(0.1)` in the code and use it as the time of an “ideal solution”. After that, I ran 1000 tests with empty input and output. Thanks to this, I was able to calculate the container startup time — around 25 ms, with an error of about ±4 ms, which is actually a very good result!
+
+**After that, I decided to test the system in more realistic conditions. I ran a complex recursive DFS algorithm on 100 tests, and the whole check took only 1.8 seconds! Honestly, I was really happy with this result, because with this level of isolation I expected the overhead to be much higher.**
+
+At the very beginning, when this project was only in the planning stage, I was thinking about the following protection methods:
+
+- The first thing that came to my mind was detecting dangerous patterns in the user's code, for example `os.remove("system32")`. But if a person has even basic Python knowledge, this can be bypassed way too easily.
+- The next step was to run user code inside a Docker container. This is already a completely different level compared to the first option: escaping becomes harder, but still possible. The second problem is that starting a Docker container takes too long.
+- The solution was to use the ultra-fast and lightweight `nsjail`.
+
+### Changelog
+
+Let's start with the fact that in previous patches I forgot to add input data to `TestCase`. It's so funny because I didn't notice it at all until I started implementing the test execution logic.
+
+- Added an input data field to the models and Pydantic schemas.
+
+Now I finally have a clear vision of the future architecture of the project:
+
+![](.github/assets/code-runner-architecture.jpeg)
+
+The diagram shows the main server, the broker, the workers, and the interaction between them:
+
+- The main server manages the database, accepts requests, and so on.
+- The workers, in turn, are responsible for running user code and processing the result.
+- The broker manages the task queue. The main server does not need to know every worker directly — it only needs to know the broker. The same applies to the workers.
+
+For isolating user code, I use an open-source application called `nsjail`. It is a utility that basically squeezes everything possible out of the Linux kernel.
+
+- A new isolated environment is created for every single test, so the user cannot get access to information about all tests at once.
+- A separate network namespace is created so the user cannot access the internet.
+- A separate user namespace is created. Inside the jail, the user thinks they are root, but outside of it, they are just a regular user.
+- A separate mount namespace is created. In practice, we define the working space as `worker/sandbox/rootfs`, but inside the jail it becomes `/`, the root directory, and escaping from it becomes very difficult.
+- The container can only see its own processes, not the host processes.
+- A separate cgroup is created, and system resources are limited very strictly, trust me.
+- To run Python, all required files are copied into `rootfs` in advance: the interpreter, the standard library, and system dependencies. They are not mounted directly from the host while user code is running.
+- A full `/proc` is not mounted inside the jail, because it can expose unnecessary information about the system. Instead, the environment is minimized, and the required environment variables are set explicitly.
+- Also, for every solution, a separate folder with a unique UUID is created and mounted as `/workspace/`. The user cannot access someone else's ID in any way.
+
+I will not go too deep into resource limitations, but with `cgroupv2`, things are really strict:
+
+- File write size is limited. The user does not need to write files at all, but Python itself may do it in some cases.
+- The number of simultaneously running processes is also heavily limited. The user will not be able to blow me up with `multiprocessing`.
+Why not just 1 process? Because Python can theoretically spawn background processes.
+- The isolated environment has access to only 1 CPU core.
+- There is a soft memory limit that helps detect memory limit violations.
+- There is a hard memory limit: if the isolated environment exceeds the limit, Linux kills the process with `SIGKILL`.
+- There is also a time limit.
+
+
+I also thought about this case in advance: what if the `time_limit` for a solution is set to 1 second, the solution itself theoretically runs in 0.1 seconds, but malicious code contains `sleep(0.9)`? To solve this problem, I added a total time limit for checking all tests.
+
+The entire filesystem inside the jail is Read Only.
+ `nsjail` also allows setting up `seccomp`. This is a really powerful thing: in short, it allows or blocks specific system calls at the Linux kernel level. But this requires more time to properly reduce the available capabilities, so I have not worked on it yet.
+
+Even if malicious user code somehow manages to break through the protection I prepared, it will only end up on the worker server.
+
+- The worker has no access to the database.
+- The worker does not contain any secret resources.
+- In theory, the worker can be rebuilt every day as another layer of protection.
+
+Now let's look at what changed in the root folder of the project:
+
+- `/app` contains the FastAPI application, endpoints, and related files.
+- `/worker` contains only the files needed for the worker that runs user code.
+- `/shared` contains shared schemas and enums, so the code is not duplicated inside `app` and `worker`.
+- Added a `Dockerfile` that uses a multi-stage build. This is very convenient because `app` and `worker` can be built separately.
+- Added `docker-compose.yaml` for building the full code-runner, although it does not fully build the entire project yet.
+
+Additional changes:
+
+- `/worker/debugtools.py` — functions for debugging the container, which helped me solve the problem of calculating the real execution time of user code.
+- `/shared/logger.py` — I only started writing the logging foundation there, and I will finish it in future patches.
+- I also started slowly adding documentation and comments to the code.
+
+### Future Features
+
+Before the first version is finished, there are only a few things left to add:
+
+- Connect the application and workers using Celery and a message broker.
+- Add at least basic logging.
+- Write documentation for classes and functions as the final touch.
+
+I am really glad that the project is getting close to completion! It was very interesting to work on the protection layer and learn about Linux namespaces. Of course, I did not go super deep under the hood, but I at least became familiar with the basic concepts.
+
+Before this, I used to think Docker was some kind of miracle thing. Turns out Docker is basically just a convenient wrapper around Linux kernel features, and its authors did a great job making it lightweight and easy for everyone to use.
+
+Also, I might study ways to visually display statistics and logging, and then use that in this project.
+
+
+## DID YOU SAY STAIRS?
+<img src="https://i.pinimg.com/1200x/b8/a0/4e/b8a04eb5889a860d04fb9346e117d4aa.jpg" alt="AURA MONSTER">
+Only 2 days left until AURA MONSTER, 2 days until Daniel's party!

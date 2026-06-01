@@ -1,11 +1,8 @@
 from app.core.database import Base
-from app.models.test_suite import TestSuite
-from app.models.submission import Submission
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String
 from typing import List
-
 
 
 class Service(Base):

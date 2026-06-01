@@ -1,7 +1,7 @@
 from app.core.http_exceptions import NotFoundError
 
-from app.models import TestSuite, TestCase, Service
-from app.services.database import TestSuiteDAO
+from app.models import Service, TestSuite, TestCase
+from app.database import TestSuiteDAO
 from app.schemas.test_suite import TestSuiteCreateSchema, TestSuiteUpdateSchema
 
 from sqlalchemy.ext.asyncio import AsyncSession

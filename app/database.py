@@ -27,7 +27,6 @@ class BaseDAO(Generic[T]):
         res = await session.execute(stmt)
         return res.scalar_one_or_none()
 
-
     @classmethod
     async def add(cls, session: AsyncSession, data: dict) -> T:
         await cls._check_model_fields(data)

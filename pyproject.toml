@@ -5,6 +5,11 @@ version = "1.0.0"
 description = ""
 authors = ["XsSandreiSsX"]
 readme = "README.md"
+packages = [
+    { include = "shared" },
+    { include = "app" },
+    { include = "worker" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -34,6 +39,7 @@ typing-inspection = "0.4.2"
 typing-extensions = "4.15.0"
 uvicorn = "0.47.0"
 pyjwt = "^2.13.0"
+docker = "^7.1.0"
 
 
 [build-system]

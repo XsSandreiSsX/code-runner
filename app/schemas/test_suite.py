@@ -4,6 +4,7 @@ from typing import List
 
 class TestCaseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+    stdin: str = Field(max_length=10000)
     stdout: str = Field(max_length=10000)
 
 

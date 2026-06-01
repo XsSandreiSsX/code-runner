@@ -13,6 +13,7 @@ from fastapi import FastAPI
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -34,3 +35,8 @@ async def health():
         "debug_mode": settings.DEBUG,
         "status": "ok",
     }
+
+
+@app.post("/submit")
+async def submit_solution(source_code: str):
+    return {"status": "IN_QUEUE"}

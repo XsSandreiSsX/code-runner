@@ -10,6 +10,7 @@ class TestCase(Base):
     __tablename__ = "testcase"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    stdin: Mapped[str] = mapped_column(Text)
     stdout: Mapped[str] = mapped_column(Text)
 
     test_suite_id: Mapped[int] = mapped_column(ForeignKey("testsuite.id"))

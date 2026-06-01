@@ -1,6 +1,6 @@
 from app.core.deps import get_session
 
-from app.services.database import ServiceDAO
+from app.database import ServiceDAO
 
 from contextlib import asynccontextmanager
 import secrets
