@@ -42,7 +42,7 @@ async def get_current_issuer(credentials: HTTPAuthorizationCredentials = Depends
         if field not in payload:
             raise InvalidTokenError(detail=f"Missing `{field}` in token")
 
-    service = await ServiceDAO.get_or_none(session, name=issuer)
+    service = await ServiceDAO.get_one_or_none(session, name=issuer)
     if not service:
         raise UnauthorizedError(detail="Unauthorized service")
 

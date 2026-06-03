@@ -1,17 +1,68 @@
 services:
-  backend:
-    container_name: code-runner-backend
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "15672:15672"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "rabbitmq-diagnostics -q ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
-    build:
-      context: .
-      target: main
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--save", "60", "1", "--loglevel warning", "--requirepass", "${REDIS_PASSWORD}"]
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli -a \"${REDIS_PASSWORD}\" ping | grep PONG" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+
+    env_file: .env
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postresql/data
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d code_runner" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      - postgres
 
   worker:
-    container_name: code-runner-worker
-
     build:
       context: .
       target: worker
+    env_file: .env
     cap_add:
       - SYS_ADMIN
 
@@ -23,3 +74,31 @@ services:
 
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
+
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  fastapi:
+    build:
+      context: .
+      target: main
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      worker:
+        condition: service_started
+
+volumes:
+  rabbitmq_data:
+  redis_data:
+  postgres_data:

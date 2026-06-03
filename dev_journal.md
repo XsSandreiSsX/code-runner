@@ -253,3 +253,62 @@ Also, I might study ways to visually display statistics and logging, and then us
 ## DID YOU SAY STAIRS?
 <img src="https://i.pinimg.com/1200x/b8/a0/4e/b8a04eb5889a860d04fb9346e117d4aa.jpg" alt="AURA MONSTER">
 Only 2 days left until AURA MONSTER, 2 days until Daniel's party!
+
+## Patch 1.6
+At some point, I ran into a problem: we send a `Submission` to the worker so it can run the code and execute the tests. At first, everything seemed fine — we had removed synchronous code from the FastAPI application.
+
+But then an annoying detail appears: we still need to get the execution result somehow.
+
+My first thought was to use the simplest approach: the worker processes the `Submission` and writes the result back to the database by itself. That would be ideal — the application would just send the task to the worker and stop caring about the rest.
+
+But in my case, this is not the best option. The worker runs user-submitted code, and giving that process direct access to the database is almost suicidal. Even with isolation, I still do not want the potentially dangerous part of the system to be able to touch the main database.
+Д
+So instead of writing the execution result directly to the database, I store it through `Redis` as the Celery result backend. This allows the worker to return the result without having access to the main database.
+
+Of course, this does not make the system completely invulnerable. If malicious user code somehow escapes the worker isolation, it can still try to cause damage through the queue: for example, break task processing, corrupt task results, or assign fake verdicts like `WRONG_ANSWER` to other `Submission` tasks.
+
+So `Redis` solves the specific problem of not giving the worker direct access to the main database, but it does not remove the need to protect the queue and the result backend as well. It simply reduces the blast radius compared to giving the worker full database access.
+
+In Celery, we can get the result by `task_id` using `AsyncResult().get()`. The problem is that `.get()` is a blocking method. It waits until the task is completed, and if we call it directly inside FastAPI, we bring back the same blocking behavior we were trying to avoid.
+
+
+I see a few possible solutions:
+- Create a webhook where the worker sends the judging result.
+
+I do not like this solution by itself. It adds an unnecessary extra layer and also requires storing a secret token, which could be stolen if malicious code escapes the isolation.
+- **Update the verdict only when GET /submission/{submission_id} is called.**
+
+This sounds better, but I still do not like it. If nobody requests the submission, it can stay as status.RUNNING forever and become dead weight in the database. There is also a chance of a race condition.
+
+- **After submitting a solution, create a new thread that waits for the task result.**
+
+I do not like this solution either. A lot of submissions means a lot of threads. Also, if the FastAPI application crashes, some submissions may stay as status.RUNNING forever.
+
+- **Create one background checker that runs every 1–2 seconds.**
+
+For now, this feels like the best solution. The checker will live inside the FastAPI lifespan, find submissions with status.RUNNING, ask Redis for the Celery task result, and update the verdict when the task is finished.
+
+This way, we do not create a separate thread for every submission, the worker still does not need database access, and RUNNING submissions can be picked up automatically after a restart.
+
+After comparing these options, I decided to use a background checker.
+
+For this, I need to add a celery_task_id field to the Submission model. I will save the Celery task id when the submission is created, and the checker will use it to fetch the task result and update the final verdict.
+
+### Changelog
+- Added `the celery_task_id` field to the Submission model
+- Added PostgreSQL database to docker-compose
+- Added RabbitMQ message broker to docker-compose
+- Added Redis to docker-compose for storing worker task results
+- The connection between the main service and the worker now works through the RabbitMQ message broker
+- The task queue now works correctly: tasks are sent, the worker receives them, and user code is executed
+- Added `ResultAwaiter` for receiving worker results and updating the Submission status
+- In the CLI, the `add-service` command can now optionally generate a test Bearer token valid for 15 minutes
+- Previously, stdin and stdout were limited to 10,000 characters, but this turned out to be too small for real-world usage, so these limits were removed
+- Tested the full flow of the task queue, worker execution, and result retrieval through Redis
+- Made minor improvements to the DAO layer: added the `get_many_or_none` method and removed duplicated code
+- **Celery finally works properly. Victory.**
+
+### Future Features
+- Add basic logging to make the behavior of the API, worker, and result processing easier to debug
+- Improve the project documentation, including setup instructions and a clearer explanation of the architecture
+- Add seed problems to quickly test the full workflow with predefined problems, test cases, and submissions

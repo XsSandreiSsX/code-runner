@@ -19,6 +19,7 @@ COPY shared ./shared
 
 FROM base AS main
 COPY app ./app
+COPY utils ./utils
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 
@@ -40,4 +41,4 @@ RUN mkdir -p /app/sandbox/rootfs /app/sandbox/runs && \
 
 RUN chown -R 1000:1000 /app/sandbox
 
-CMD ["python", "-m", "worker.test"]
+CMD ["celery", "-A", "shared.celery_app:app", "worker", "--loglevel=info"]

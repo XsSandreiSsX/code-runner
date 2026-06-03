@@ -1,5 +1,15 @@
 import enum
 
+
+class CeleryStatus(enum.Enum):
+    PENDING = "PENDING"
+    STARTED = "STARTED"
+    SUCCESS = "SUCCESS"
+    FAILURE = "FAILURE"
+    RETRY = "RETRY"
+    REVOKED = "REVOKED"
+
+
 class SubmissionStatus(enum.Enum):
     IN_QUEUE = "IN_QUEUE"
     RUNNING = "RUNNING"

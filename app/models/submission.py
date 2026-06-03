@@ -9,6 +9,7 @@ class Submission(Base):
     __tablename__ = "submission"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    celery_task_id: Mapped[str | None] = mapped_column(nullable=True)
     status: Mapped[SubmissionStatus] = mapped_column(Enum(SubmissionStatus),
                                                      default=SubmissionStatus.IN_QUEUE)
     verdict: Mapped[SubmissionVerdict | None] = mapped_column(Enum(SubmissionVerdict),

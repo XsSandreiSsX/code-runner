@@ -1,6 +1,6 @@
 from app.core.deps import get_session
-
 from app.database import ServiceDAO
+from utils.jwt_test import generate_internal_jwt
 
 from contextlib import asynccontextmanager
 import secrets
@@ -15,9 +15,15 @@ async def _add_service(name: str):
         service = await ServiceDAO.add(session, {"name": name, "jwt_secret": secrets.token_hex(32)})
         typer.echo(f"A new service has been added. Save this jwt_secret - it is shown only once: {service.jwt_secret}")
 
+        if typer.confirm("Generate a 15-minute test JWT token?"):
+            typer.echo(
+                f"Test token: {generate_internal_jwt(iss=service.name, jwt_secret=service.jwt_secret, ttl=900)}"
+            )
+
+
 async def _delete_service(name: str):
     async with get_session_context() as session:
-        service = await ServiceDAO.get_or_none(session, name=name)
+        service = await ServiceDAO.get_one_or_none(session, name=name)
         if not service:
             typer.echo(f"Service with name {name} not found")
             return
@@ -29,7 +35,7 @@ async def _delete_service(name: str):
 
 async def _refresh_jwt(name: str):
     async with get_session_context() as session:
-        service = await ServiceDAO.get_or_none(session, name=name)
+        service = await ServiceDAO.get_one_or_none(session, name=name)
         if not service:
             typer.echo(f"Service with name {name} not found")
             return

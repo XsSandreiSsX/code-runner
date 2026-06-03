@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 class SubmissionService:
     @classmethod
     async def create_submission(cls, session: AsyncSession, data: SubmissionCreateSchema, issuer: Service) -> Submission:
-        cur_testsuite = await TestSuiteDAO.get_or_none(session, id=data.testsuite_id, service_id=issuer.id)
+        cur_testsuite = await TestSuiteDAO.get_one_or_none(session, id=data.testsuite_id, service_id=issuer.id)
         if not cur_testsuite:
             raise NotFoundError(f"Test suite with id: {data.testsuite_id} was not found.")
 
@@ -21,7 +21,7 @@ class SubmissionService:
 
     @classmethod
     async def get_submission(cls, session: AsyncSession, submission_id: int, issuer: Service) -> Submission:
-        submission = await SubmissionDAO.get_or_none(session, id=submission_id, service_id=issuer.id)
+        submission = await SubmissionDAO.get_one_or_none(session, id=submission_id, service_id=issuer.id)
         if not submission:
             raise NotFoundError(f"Submission with id: {submission_id} was not found.")
         return submission

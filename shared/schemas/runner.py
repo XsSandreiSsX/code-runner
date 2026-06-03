@@ -1,12 +1,13 @@
 from shared.models.enums import SubmissionVerdict
 
-from pydantic import BaseModel, Field, PositiveInt
+from pydantic import BaseModel, Field, PositiveInt, ConfigDict
 from typing import List
 
 
 class TestCaseSchema(BaseModel):
-    stdin: str = Field(max_length=10000)
-    stdout: str = Field(max_length=10000)
+    model_config = ConfigDict(from_attributes=True)
+    stdin: str = Field()
+    stdout: str = Field()
 
 
 class RunnerInputSchema(BaseModel):

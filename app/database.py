@@ -16,16 +16,29 @@ class BaseDAO(Generic[T]):
     ALLOWED_FIELDS: set[str] = set()
 
     @classmethod
-    async def get_or_none(cls, session: AsyncSession, **filters) -> T | None:
+    async def get_one_or_none(cls, session: AsyncSession, **filters) -> T | None:
         if not filters:
             raise NoFilterError("Filters cannot be empty")
 
         stmt = select(cls.model)
-        for k, v in filters.items():
-            stmt = stmt.where(getattr(cls.model, k) == v)
+        stmt = cls._apply_filters(stmt, filters)
 
         res = await session.execute(stmt)
         return res.scalar_one_or_none()
+
+    @classmethod
+    async def get_many_or_none(cls, session: AsyncSession, **filters) -> list[T] | None:
+        if not filters:
+            raise NoFilterError("Filters cannot be empty")
+
+        stmt = select(cls.model)
+        stmt = cls._apply_filters(stmt, filters)
+
+        res = await session.execute(stmt)
+        objects = res.scalars().all()
+
+        return list(objects)
+
 
     @classmethod
     async def add(cls, session: AsyncSession, data: dict) -> T:
@@ -56,13 +69,7 @@ class BaseDAO(Generic[T]):
             raise NoFilterError("Filters cannot be empty")
         await cls._check_model_fields(filters)
         stmt = delete(cls.model)
-
-        for k, v in filters.items():
-            col = getattr(cls.model, k)
-            if isinstance(v, (list, tuple, set)):
-                stmt = stmt.where(col.in_(list(v)))
-            else:
-                stmt = stmt.where(col == v)
+        stmt = cls._apply_filters(stmt, filters)
 
         await session.execute(stmt)
         await session.flush()
@@ -79,6 +86,18 @@ class BaseDAO(Generic[T]):
         fields = ", ".join([f for f in unknown])
         if unknown:
             raise UnknownFieldError(f"Unknown fields: [{fields}] in {cls.model.__tablename__}")
+
+    @classmethod
+    def _apply_filters(cls, stmt, filters: dict):
+        for k, v in filters.items():
+            col = getattr(cls.model, k)
+
+            if isinstance(v, (list, tuple, set)):
+                stmt = stmt.where(col.in_(list(v)))
+            else:
+                stmt = stmt.where(col == v)
+
+        return stmt
 
     @classmethod
     def __init_subclass__(cls, **kwargs) -> None:
