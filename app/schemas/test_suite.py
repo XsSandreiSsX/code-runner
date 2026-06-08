@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field, PositiveInt, model_validator, ConfigDict
 from typing import List
+
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt, model_validator
 
 
 class TestCaseSchema(BaseModel):
@@ -24,16 +25,13 @@ class TestSuiteUpdateSchema(BaseModel):
     @model_validator(mode="after")
     def validate_not_empty(self):
         if all(
-                value is None
-                for value in [
-                    self.time_limit,
-                    self.memory_limit,
-                    self.test_cases
-                ]
+            value is None
+            for value in [self.time_limit, self.memory_limit, self.test_cases]
         ):
             raise ValueError("At least one field must be provided")
 
         return self
+
 
 class TestSuiteCreatedDataSchema(BaseModel):
     id: int = Field(default=67)

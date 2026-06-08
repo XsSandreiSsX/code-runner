@@ -1,5 +1,6 @@
+from pydantic import BaseModel, ConfigDict, Field
+
 from shared.models.enums import SubmissionStatus, SubmissionVerdict
-from pydantic import BaseModel, Field, ConfigDict
 
 
 class SubmissionCreateSchema(BaseModel):
@@ -25,5 +26,3 @@ class SubmissionGetDataSchema(BaseModel):
     time_used: int | None = Field(default=None)
     memory_used: int | None = Field(default=None)
     tests_passed: int | None = Field(default=None)
-
-

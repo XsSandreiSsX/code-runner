@@ -1,13 +1,13 @@
-from time import perf_counter
 import logging
 import statistics
-
+from time import perf_counter
 
 logger = logging.getLogger(__name__)
 
 
 def measure_execution_time(func):
     """Decorator that collects execution time samples for performance analysis."""
+
     def wrapper(*args, **kwargs):
         start_time = perf_counter()
         res = func(*args, **kwargs)
@@ -17,6 +17,7 @@ def measure_execution_time(func):
         elapsed_ms = (end_time - start_time) * 1000
         instance.measure.append(elapsed_ms)
         return res
+
     return wrapper
 
 

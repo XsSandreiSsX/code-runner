@@ -9,8 +9,17 @@ class AppException(Exception):
 class UnknownFieldError(AppException):
     """Raised when an unknown field is encountered"""
 
+
 class ServiceAlreadyExistsError(AppException):
     """Raised when a service with name already exists"""
+
+
+class ServiceDoesNotExistsError(AppException):
+    """Raised when a service with name does not exists"""
+
+
+class SeedProblemDoesExistsError(AppException):
+    """Raised when a seed problem exists"""
 
 
 class NoFilterError(AppException):

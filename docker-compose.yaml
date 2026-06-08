@@ -39,7 +39,7 @@ services:
       - "5433:5432"
 
     volumes:
-      - postgres_data:/var/lib/postresql/data
+      - postgres_data:/var/lib/postgresql/data
 
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres -d code_runner" ]

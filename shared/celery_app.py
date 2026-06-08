@@ -1,6 +1,6 @@
-from celery import Celery
 import os
 
+from celery import Celery
 
 CELERY_BROKER_URL = (
     f"amqp://{os.getenv('RABBITMQ_USER')}:{os.getenv('RABBITMQ_PASSWORD')}"
@@ -13,14 +13,12 @@ CELERY_BACKEND_URL = (
 )
 
 
-app = Celery("runner",
-             broker=CELERY_BROKER_URL,
-             backend=CELERY_BACKEND_URL,
-             include=["worker.main"])
-
-
-app.conf.update(
-    task_track_started=True,
-    acks_late=True
+app = Celery(
+    "runner",
+    broker=CELERY_BROKER_URL,
+    backend=CELERY_BACKEND_URL,
+    include=["worker.main"],
 )
 
+
+app.conf.update(task_track_started=True, acks_late=True)

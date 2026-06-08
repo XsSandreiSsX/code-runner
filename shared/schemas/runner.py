@@ -1,7 +1,8 @@
-from shared.models.enums import SubmissionVerdict
-
-from pydantic import BaseModel, Field, PositiveInt, ConfigDict
 from typing import List
+
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt
+
+from shared.models.enums import SubmissionVerdict
 
 
 class TestCaseSchema(BaseModel):

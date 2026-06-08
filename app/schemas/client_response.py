@@ -1,7 +1,9 @@
+from typing import Generic, Literal, Self, TypeVar
+
 from pydantic import BaseModel
-from typing import Literal, TypeVar, Generic, Self
 
 T = TypeVar("T")
+
 
 class ClientResponse(BaseModel, Generic[T]):
     status: Literal["success", "error"]

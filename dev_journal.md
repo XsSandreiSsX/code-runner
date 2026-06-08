@@ -91,7 +91,7 @@ Just look at how clean these endpoints are. I moved the business logic out of th
 - Planning to finish JWT authorization and use it to protect all API methods
 - Added access control checks:
   - <code>service_id</code> from JWT must match the owner of the <code>TestSuite</code>
-  - services cannot get, update, or delete чужие test suites
+  - services cannot get, update, or delete others test suites
 
 
 ## Patch 1.3:
@@ -262,7 +262,7 @@ But then an annoying detail appears: we still need to get the execution result s
 My first thought was to use the simplest approach: the worker processes the `Submission` and writes the result back to the database by itself. That would be ideal — the application would just send the task to the worker and stop caring about the rest.
 
 But in my case, this is not the best option. The worker runs user-submitted code, and giving that process direct access to the database is almost suicidal. Even with isolation, I still do not want the potentially dangerous part of the system to be able to touch the main database.
-Д
+
 So instead of writing the execution result directly to the database, I store it through `Redis` as the Celery result backend. This allows the worker to return the result without having access to the main database.
 
 Of course, this does not make the system completely invulnerable. If malicious user code somehow escapes the worker isolation, it can still try to cause damage through the queue: for example, break task processing, corrupt task results, or assign fake verdicts like `WRONG_ANSWER` to other `Submission` tasks.
@@ -312,3 +312,78 @@ For this, I need to add a celery_task_id field to the Submission model. I will s
 - Add basic logging to make the behavior of the API, worker, and result processing easier to debug
 - Improve the project documentation, including setup instructions and a clearer explanation of the architecture
 - Add seed problems to quickly test the full workflow with predefined problems, test cases, and submissions
+
+## Patch 1.7:
+
+The project has reached an important completed stage. I really enjoyed working on it: experimenting with `nsjail`, setting up isolated code execution, building the task queue, and getting hands-on experience with Celery, RabbitMQ, Redis backend, and the infrastructure around asynchronous judging.
+
+This patch is focused on making the project easier to test, debug, document, and maintain.
+
+### Changelog
+
+- Added seed problems for quick creation of test `TestSuite` records.
+- Added a dedicated seed problem structure:
+
+  - `meta.py` — problem metadata;
+  - `tests.json` — test cases;
+  - `solutions.py` — predefined solutions with expected verdicts.
+- Added loading of seed problems from the project file structure.
+- Added support for loading only selected seed problem fields.
+- Added the ability to insert a selected seed problem into a specific service as a `TestSuite`.
+- Added validation for missing seed problems before insertion. 
+- Added validation for missing services before inserting a seed `TestSuite`.
+- Added CLI command for listing all available seed problems.
+- Added CLI command for viewing seed problem metadata:
+  - title;
+  - statement;
+  - input format;
+  - output format;
+  - time limit;
+  - memory limit.
+- Added CLI command for inserting a seed problem into the database.
+- Added `--to-service` option for selecting the target service.
+- Added `judge-test` CLI command for full judge pipeline verification.
+- `judge-test` creates a temporary service for testing.
+- `judge-test` inserts a seed `TestSuite` into the temporary service.
+- `judge-test` submits all predefined solutions from `solutions.py`.
+- `judge-test` compares actual verdicts with expected verdicts.
+- `judge-test` removes all temporary data after the check is finished.
+- Added `CheckResult` for storing individual check results.
+- Added Rich-based live terminal UI for displaying judge test progress.
+- Added success, failure, and error output for judge checks.
+- Added handling for errors raised by individual checks.
+- Added helper for waiting for Celery task results without blocking the event loop.
+- Moved blocking Celery backend calls to a separate thread using `asyncio.to_thread`.
+- Added integration/smoke test coverage for the full flow:
+
+  - FastAPI backend;
+  - Celery;
+  - RabbitMQ;
+  - worker;
+  - Redis result backend;
+  - database update.
+- Added docstrings across the main parts of the project:
+
+  - CLI commands;
+  - service layer;
+  - DAO layer;
+  - FastAPI dependencies;
+  - `ResultAwaiter`;
+  - worker runner;
+  - worker use cases;
+
+- Added basic project logging.
+- Added loggers to important parts of the application.
+- Standardized logger usage with `logger = logging.getLogger(__name__)`.
+- Reduced noisy logs during large test runs.
+- Updated logs to use structured `key=value` style where useful.
+- Added safe DAO debug logs without logging sensitive payload values.
+- Added `ResultAwaiter` logs for startup, shutdown, task result processing, and errors.
+- Added logs for sending submissions to Celery.
+- Added runner debug logs for temporary workspace creation, sandbox execution, and cleanup.
+- Avoided logging sensitive or large values such as `source_code`, `jwt_secret`, and full test cases.
+- Improved CLI command descriptions using `help` and `short_help`.
+- Improved CLI error messages for missing services and seed problems.
+
+### Future Features
+ - **Added README.md before release.**

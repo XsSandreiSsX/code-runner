@@ -1,39 +1,61 @@
-from app.core.http_exceptions import NotFoundError
-from app.models import Service, TestSuite, TestCase
-from app.database import TestSuiteDAO
-from app.schemas.test_suite import TestSuiteCreateSchema, TestSuiteUpdateSchema
-
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.http_exceptions import NotFoundError
+from app.database import TestSuiteDAO
+from app.models import Service, TestCase, TestSuite
+from app.schemas.test_suite import TestSuiteCreateSchema, TestSuiteUpdateSchema
 
 
 class TestSuiteService:
+    """Provides test suite-related business operations."""
+
     @classmethod
-    async def create_testsuite(cls, session: AsyncSession, data: TestSuiteCreateSchema, issuer: Service) -> TestSuite:
+    async def create_testsuite(
+        cls, session: AsyncSession, data: TestSuiteCreateSchema, issuer: Service
+    ) -> TestSuite:
+        """Create a test suite for the authenticated service."""
         tests = data.test_cases
 
         payload = data.model_dump(exclude={"test_cases"})
-        payload.update({"test_cases": [TestCase(**test.model_dump()) for test in tests]})
+        payload.update(
+            {"test_cases": [TestCase(**test.model_dump()) for test in tests]}
+        )
         payload.update({"service": issuer})
 
         new_obj = await TestSuiteDAO.add(session, data=payload)
         return new_obj
 
     @classmethod
-    async def get_testsuite(cls, session: AsyncSession, testsuite_id: int, issuer: Service) -> TestSuite:
-        obj = await TestSuiteDAO.get_one_or_none(session, id=testsuite_id, service_id=issuer.id)
+    async def get_testsuite(
+        cls, session: AsyncSession, testsuite_id: int, issuer: Service
+    ) -> TestSuite:
+        """Get a test suite owned by the authenticated service."""
+        obj = await TestSuiteDAO.get_one_or_none(
+            session, id=testsuite_id, service_id=issuer.id
+        )
         if not obj:
             raise NotFoundError(f"Test suite with id: {testsuite_id} was not found.")
         return obj
 
     @classmethod
-    async def update_testsuite(cls, session: AsyncSession, data: TestSuiteUpdateSchema, testsuite_id: int,
-                               issuer: Service) -> TestSuite:
+    async def update_testsuite(
+        cls,
+        session: AsyncSession,
+        data: TestSuiteUpdateSchema,
+        testsuite_id: int,
+        issuer: Service,
+    ) -> TestSuite:
+        """Update a test suite owned by the authenticated service."""
         payload = data.model_dump(exclude={"test_cases"}, exclude_unset=True)
         if data.test_cases:
             tests = data.test_cases
-            payload.update({"test_cases": [TestCase(**test.model_dump()) for test in tests]})
+            payload.update(
+                {"test_cases": [TestCase(**test.model_dump()) for test in tests]}
+            )
 
-        obj = await TestSuiteDAO.get_one_or_none(session, id=testsuite_id, service_id=issuer.id)
+        obj = await TestSuiteDAO.get_one_or_none(
+            session, id=testsuite_id, service_id=issuer.id
+        )
         if not obj:
             raise NotFoundError(f"Test suite with id: {testsuite_id} was not found.")
 
@@ -41,10 +63,14 @@ class TestSuiteService:
         return updated_obj
 
     @classmethod
-    async def delete_testsuite(cls, session: AsyncSession, testsuite_id: int, issuer: Service) -> None:
-        obj = await TestSuiteDAO.get_one_or_none(session, id=testsuite_id, service_id=issuer.id)
+    async def delete_testsuite(
+        cls, session: AsyncSession, testsuite_id: int, issuer: Service
+    ) -> None:
+        """Delete a test suite owned by the authenticated service."""
+        obj = await TestSuiteDAO.get_one_or_none(
+            session, id=testsuite_id, service_id=issuer.id
+        )
         if not obj:
             raise NotFoundError(f"Test suite with id: {testsuite_id} was not found.")
 
         await TestSuiteDAO.delete_obj(session, obj=obj)
-

@@ -20,6 +20,7 @@ COPY shared ./shared
 FROM base AS main
 COPY app ./app
 COPY utils ./utils
+COPY seed_problems ./seed_problems
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 
